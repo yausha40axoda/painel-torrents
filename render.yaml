@@ -11,3 +11,5 @@ services:
         value: seu_chat_id
       - key: DROPBOX_TOKEN
         value: seu_token_dropbox
+      - key: RPC_SECRET
+        value: minha_senha_segura_123
