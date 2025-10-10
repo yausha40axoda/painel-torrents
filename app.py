@@ -4,16 +4,25 @@ import requests
 import time
 import aria2p
 import subprocess
+import socket
 
-# 🔹 Inicia aria2c com segredo
+# 🔹 Verifica se a porta 6800 está ocupada
+def porta_esta_ocupada(porta):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(("localhost", porta)) == 0
+
+# 🔹 Inicia aria2c com segredo, se necessário
 rpc_secret = os.getenv("RPC_SECRET", "default123")
-subprocess.Popen([
-    "aria2c",
-    "--enable-rpc",
-    "--rpc-listen-all=false",
-    "--rpc-allow-origin-all",
-    f"--rpc-secret={rpc_secret}"
-])
+if not porta_esta_ocupada(6800):
+    subprocess.Popen([
+        "aria2c",
+        "--enable-rpc",
+        "--rpc-listen-all=false",
+        "--rpc-allow-origin-all",
+        f"--rpc-secret={rpc_secret}"
+    ])
+else:
+    print("⚠️ aria2c já está rodando ou porta 6800 ocupada.")
 
 # 🔹 Tokens via ambiente
 token_telegram = os.getenv("TELEGRAM_TOKEN", "")
@@ -34,7 +43,7 @@ except Exception as e:
     print(f"❌ Erro ao conectar ao aria2: {e}")
     aria2 = None
 
-# 🔹 Função Telegram com validação
+# 🔹 Função Telegram
 def enviar_mensagem_telegram(texto: str) -> str:
     if not texto.strip():
         return "⚠️ Mensagem vazia. Digite algo antes de enviar."
