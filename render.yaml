@@ -1,9 +1,9 @@
 services:
   - type: web
     name: painel-dropcolab
-    env: docker
-    dockerfilePath: Dockerfile
-    autoDeploy: true
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
     envVars:
       - key: TELEGRAM_TOKEN
         value: seu_token_telegram
@@ -12,4 +12,4 @@ services:
       - key: DROPBOX_TOKEN
         value: seu_token_dropbox
       - key: RPC_SECRET
-        value: minha_senha_segura_123
+        value: teste123
