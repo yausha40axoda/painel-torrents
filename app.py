@@ -57,21 +57,36 @@ def enviar_mensagem_telegram(texto: str) -> str:
     except Exception as e:
         return f"❌ Erro ao enviar: {str(e)}"
 
-# 🔹 Função Dropbox
+# 🔹 Função Dropbox (apenas .mkv)
 def upload_dropbox(arquivo) -> str:
     if not token_dropbox:
         return "❌ Token do Dropbox não configurado."
     nome = os.path.basename(arquivo.name)
+    if not nome.endswith(".mkv"):
+        return f"⚠️ Apenas arquivos .mkv são permitidos. Você enviou: {nome}"
+    caminho = arquivo.name
     conteudo = arquivo.read()
+    tamanho = len(conteudo)
+    gr.Info(f"📤 Enviando: {nome} — {tamanho // 1024} KB")
+
     headers = {
         "Authorization": f"Bearer {token_dropbox}",
         "Content-Type": "application/octet-stream",
         "Dropbox-API-Arg": f'{{"path": "/{nome}", "mode": "add", "autorename": true}}'
     }
-    response = requests.post("https://content.dropboxapi.com/2/files/upload", headers=headers, data=conteudo)
-    return "✅ Upload concluído!" if response.ok else f"❌ Erro: {response.text}"
 
-# 🔹 Função Torrent
+    try:
+        response = requests.post("https://content.dropboxapi.com/2/files/upload", headers=headers, data=conteudo)
+        if response.ok:
+            if os.path.exists(caminho):
+                os.remove(caminho)
+            return f"✅ Upload concluído e arquivo excluído: {nome}"
+        else:
+            return f"❌ Erro no upload: {response.text}"
+    except Exception as e:
+        return f"❌ Erro ao enviar: {str(e)}"
+
+# 🔹 Função Torrent com barra de progresso
 def baixar_e_gerenciar_automatico(magnet: str) -> str:
     if not aria2:
         return "⚠️ aria2 não está disponível. Verifique se está rodando."
@@ -88,17 +103,18 @@ def baixar_e_gerenciar_automatico(magnet: str) -> str:
 
     while not download.is_complete:
         download.update()
-        time.sleep(5)
+        progresso = int(download.progress * 100)
+        gr.Info(f"📥 Baixando: {download.name} — {progresso}%")
+        time.sleep(2)
 
     enviar_mensagem_telegram(f"✅ Download concluído: {download.name}")
 
     for nome in os.listdir("downloads"):
         caminho = os.path.join("downloads", nome)
         if os.path.isfile(caminho) and nome.endswith(".mkv"):
-            with open(caminho, "rb") as f:
-                upload_dropbox(f)
-            enviar_mensagem_telegram(f"📦 Arquivo enviado: {nome}")
-            resultado.append(f"{nome} enviado")
+            status = upload_dropbox(open(caminho, "rb"))
+            enviar_mensagem_telegram(f"📦 {status}")
+            resultado.append(status)
 
     return "\n".join(resultado) if resultado else "⚠️ Nenhum arquivo .mkv encontrado."
 
@@ -116,7 +132,47 @@ def testar_rpc() -> str:
 def status_token(valor):
     return "✔️ Carregado" if valor else "❌ Ausente"
 
+# 🔹 Gerenciador de arquivos
+def listar_arquivos():
+    pasta = "downloads"
+    if not os.path.exists(pasta):
+        return "⚠️ Pasta 'downloads' não existe."
+    arquivos = [f for f in os.listdir(pasta) if f.endswith(".mkv")]
+    if not arquivos:
+        return "⚠️ Nenhum arquivo .mkv encontrado."
+    return "\n".join(arquivos)
+
+# 🔹 Rclone: salvar config
+def salvar_rclone_conf(conf_file):
+    os.makedirs("rclone_config", exist_ok=True)
+    caminho = os.path.join("rclone_config", "rclone.conf")
+    with open(caminho, "wb") as f:
+        f.write(conf_file.read())
+    return "✅ rclone.conf salvo com sucesso!"
+
+# 🔹 Rclone: enviar arquivo
+def enviar_com_rclone(arquivo, remoto):
+    nome = os.path.basename(arquivo.name)
+    if not nome.endswith(".mkv"):
+        return f"⚠️ Apenas arquivos .mkv são permitidos. Você enviou: {nome}"
+    caminho = arquivo.name
+    try:
+        resultado = subprocess.run(
+            ["rclone", "--config", "rclone_config/rclone.conf", "copy", caminho, f"{remoto}:/"],
+            capture_output=True,
+            text=True
+        )
+        if resultado.returncode == 0:
+            os.remove(caminho)
+            return f"✅ Enviado via rclone e excluído: {nome}"
+        else:
+            return f"❌ Erro rclone: {resultado.stderr}"
+    except Exception as e:
+        return f"❌ Falha ao executar rclone: {str(e)}"
+
 # 🔹 Interface Gradio
+remotos_disponiveis = ["dropbox", "gdrive", "onedrive", "mega"]
+
 with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("🔐 Tokens"):
         gr.Markdown("🔐 Status dos tokens carregados do ambiente:")
@@ -133,21 +189,10 @@ with gr.Blocks(title="Painel de Torrents") as demo:
 
     with gr.Tab("📁 Dropbox"):
         arquivo = gr.File(label="Escolha um arquivo")
-        status_up = gr.Textbox(label="Status")
+        status_up = gr.Textbox(label="Progresso do Upload", interactive=False)
         btn_up = gr.Button(value="Enviar para Dropbox")
         btn_up.click(fn=upload_dropbox, inputs=[arquivo], outputs=[status_up])
 
     with gr.Tab("🎬 Torrents"):
         magnet = gr.Textbox(label="Magnet Link")
-        status_dl = gr.Textbox(label="Status do Download")
-        btn_dl = gr.Button(value="Buscar e Enviar")
-        btn_dl.click(fn=baixar_e_gerenciar_automatico, inputs=[magnet], outputs=[status_dl])
-
-    with gr.Tab("🩺 Diagnóstico RPC"):
-        status_rpc = gr.Textbox(label="Status da Conexão RPC")
-        btn_rpc = gr.Button(value="Testar Conexão RPC")
-        btn_rpc.click(fn=testar_rpc, inputs=[], outputs=[status_rpc])
-
-# 🔹 Lançamento do painel com porta do Render
-port = int(os.environ.get("PORT", 7860))
-demo.launch(server_name="0.0.0.0", server_port=port, share=True)
+        status_dl = gr.Textbox(label="Pro
