@@ -12,5 +12,5 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Copia o app
 COPY app.py .
 
-# Comando de inicialização
-CMD bash -c "aria2c --enable-rpc --rpc-listen-all=false --rpc-allow-origin-all & python3 app.py"
+# Comando de inicialização com segredo RPC
+CMD bash -c "aria2c --enable-rpc --rpc-listen-all=false --rpc-allow-origin-all --rpc-secret=$RPC_SECRET & python3 app.py"
