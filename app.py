@@ -1,11 +1,16 @@
+import gradio as gr
 import os
 
+def saudacao(nome):
+    return f"Olá, {nome}! Bem-vindo ao painel."
+
+# Captura a porta do ambiente Render
 port = int(os.environ.get("PORT", 7860))
 
 gr.Interface(
-    fn=baixar_e_gerenciar_automatico,
-    inputs=gr.Textbox(label="🔗 Magnet Link"),
-    outputs=gr.Textbox(label="📦 Status do Download"),
-    title="Painel de Torrents",
-    description="Insira o link magnet para baixar, enviar para Dropbox e Telegram automaticamente."
+    fn=saudacao,
+    inputs=gr.Textbox(label="Digite seu nome"),
+    outputs=gr.Textbox(label="Mensagem de boas-vindas"),
+    title="Painel Simples",
+    description="Digite seu nome e receba uma saudação personalizada."
 ).launch(server_name="0.0.0.0", server_port=port)
