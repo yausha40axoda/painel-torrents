@@ -196,3 +196,47 @@ with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("🎬 Torrents"):
         magnet = gr.Textbox(label="Magnet Link")
         status_dl = gr.Textbox(label="Pro
+# 🔹 Rclone: salvar config
+def salvar_rclone_conf(conf_file):
+    os.makedirs("rclone_config", exist_ok=True)
+    caminho = os.path.join("rclone_config", "rclone.conf")
+    with open(caminho, "wb") as f:
+        f.write(conf_file.read())
+    return "✅ rclone.conf salvo com sucesso!"
+
+# 🔹 Rclone: enviar arquivo
+def enviar_com_rclone(arquivo, remoto):
+    nome = os.path.basename(arquivo.name)
+    if not nome.endswith(".mkv"):
+        return f"⚠️ Apenas arquivos .mkv são permitidos. Você enviou: {nome}"
+    caminho = arquivo.name
+    try:
+        resultado = subprocess.run(
+            ["rclone", "--config", "rclone_config/rclone.conf", "copy", caminho, f"{remoto}:/"],
+            capture_output=True,
+            text=True
+        )
+        if resultado.returncode == 0:
+            os.remove(caminho)
+            return f"✅ Enviado via rclone e excluído: {nome}"
+        else:
+            return f"❌ Erro rclone: {resultado.stderr}"
+    except Exception as e:
+        return f"❌ Falha ao executar rclone: {str(e)}"
+
+# 🔹 Interface da aba Rclone
+remotos_disponiveis = ["dropbox", "gdrive", "onedrive", "mega"]
+
+with gr.Tab("☁️ Rclone"):
+    gr.Markdown("Configure e envie arquivos `.mkv` via rclone")
+
+    conf_file = gr.File(label="Upload do rclone.conf")
+    status_conf = gr.Textbox(label="Status do Config", interactive=False)
+    btn_conf = gr.Button("Salvar Configuração")
+    btn_conf.click(fn=salvar_rclone_conf, inputs=[conf_file], outputs=[status_conf])
+
+    remoto = gr.Radio(remotos_disponiveis, label="Escolha o serviço de nuvem")
+    arquivo_mkv = gr.File(label="Escolha um arquivo .mkv")
+    status_rclone = gr.Textbox(label="Status do Envio", interactive=False)
+    btn_rclone = gr.Button("Enviar via Rclone")
+    btn_rclone.click(fn=enviar_com_rclone, inputs=[arquivo_mkv, remoto], outputs=[status_rclone])
