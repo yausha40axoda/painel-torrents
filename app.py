@@ -34,14 +34,22 @@ except Exception as e:
     print(f"❌ Erro ao conectar ao aria2: {e}")
     aria2 = None
 
-# 🔹 Função Telegram
+# 🔹 Função Telegram com validação
 def enviar_mensagem_telegram(texto: str) -> str:
+    if not texto.strip():
+        return "⚠️ Mensagem vazia. Digite algo antes de enviar."
     if not token_telegram or not chat_id:
         return "❌ Tokens do Telegram não configurados."
     url = f"https://api.telegram.org/bot{token_telegram}/sendMessage"
     payload = {"chat_id": chat_id, "text": texto}
-    response = requests.post(url, data=payload)
-    return "✅ Mensagem enviada!" if response.ok else f"❌ Erro: {response.text}"
+    try:
+        response = requests.post(url, data=payload)
+        if response.ok:
+            return "✅ Mensagem enviada com sucesso!"
+        else:
+            return f"❌ Erro do Telegram: {response.text}"
+    except Exception as e:
+        return f"❌ Erro ao enviar: {str(e)}"
 
 # 🔹 Função Dropbox
 def upload_dropbox(arquivo) -> str:
