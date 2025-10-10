@@ -6,7 +6,7 @@ import aria2p
 import subprocess
 
 # 🔹 Inicia o aria2c com segredo
-rpc_secret = os.getenv("RPC_SECRET", "")
+rpc_secret = os.getenv("RPC_SECRET", "default123")
 subprocess.Popen([
     "aria2c",
     "--enable-rpc",
