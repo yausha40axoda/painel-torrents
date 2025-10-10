@@ -15,7 +15,7 @@ subprocess.Popen([
     f"--rpc-secret={rpc_secret}"
 ])
 
-# 🔹 Tokens globais
+# 🔹 Tokens globais via ambiente
 token_telegram = os.getenv("TELEGRAM_TOKEN", "")
 chat_id = os.getenv("CHAT_ID", "")
 token_dropbox = os.getenv("DROPBOX_TOKEN", "")
@@ -111,6 +111,6 @@ with gr.Blocks(title="Painel de Torrents") as demo:
         btn_dl = gr.Button("Baixar e Enviar")
         btn_dl.click(baixar_e_gerenciar_automatico, magnet, status_dl)
 
-# 🔹 Lançamento do painel
+# 🔹 Lançamento do painel com share=True
 port = int(os.environ.get("PORT", 7860))
-demo.launch(server_name="0.0.0.0", server_port=port)
+demo.launch(server_name="0.0.0.0", server_port=port, share=True)
