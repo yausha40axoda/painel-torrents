@@ -13,9 +13,3 @@ services:
         value: seu_chat_id
       - key: DROPBOX_TOKEN
         value: seu_token_dropbox
-      - key: DROPBOX_REFRESH_TOKEN
-        value: seu_refresh_token_dropbox
-      - key: DROPBOX_CLIENT_ID
-        value: seu_client_id_dropbox
-      - key: DROPBOX_CLIENT_SECRET
-        value: seu_client_secret_dropbox
