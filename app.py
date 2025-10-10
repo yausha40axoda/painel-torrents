@@ -1,3 +1,10 @@
+import gradio as gr
+import os
+import requests
+
+# 🔹 Carrega variáveis de ambiente
+token_telegram = os.getenv("TELEGRAM_TOKEN", "")
+chat_id = os.getenv("CHAT_ID", "")
 def enviar_mensagem_telegram(texto: str) -> str:
     try:
         log = []
@@ -34,15 +41,11 @@ def enviar_mensagem_telegram(texto: str) -> str:
 
     except Exception as e:
         return f"❌ Erro inesperado: {str(e)}"
-        import requests
-
-token = "8454340898:AAFhVCKBIH4gy8-OmIBKgF6bPbZOdZW9Xus"
-chat_id = 7092570800
-texto = "oi"
-
-url = f"https://api.telegram.org/bot{token}/sendMessage"
-payload = {"chat_id": chat_id, "text": texto}
-
-response = requests.post(url, data=payload)
-print("Status:", response.status_code)
-print("Resposta:", response.text)
+        with gr.Blocks(title="Painel DropColab") as demo:
+    with gr.Tab("📬 Telegram"):
+        texto = gr.Textbox(label="Mensagem")
+        status_msg = gr.Textbox(label="Log de Status", lines=10, interactive=False)
+        btn_msg = gr.Button(value="Enviar")
+        btn_msg.click(fn=enviar_mensagem_telegram, inputs=[texto], outputs=[status_msg])
+        port = int(os.environ.get("PORT", 7860))
+demo.launch(server_name="0.0.0.0", server_port=port, share=True)
