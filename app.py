@@ -135,7 +135,35 @@ def listar_arquivos():
     if not arquivos:
         return "⚠️ Nenhum arquivo .mkv encontrado."
     return "\n".join(arquivos)
-    # 🔹 Interface Gradio
+
+# 🔹 Rclone: salvar config
+def salvar_rclone_conf(conf_file):
+    os.makedirs("rclone_config", exist_ok=True)
+    caminho = os.path.join("rclone_config", "rclone.conf")
+    with open(caminho, "wb") as f:
+        f.write(conf_file.read())
+    return "✅ rclone.conf salvo com sucesso!"
+
+# 🔹 Rclone: enviar arquivo
+def enviar_com_rclone(arquivo, remoto):
+    nome = os.path.basename(arquivo.name)
+    if not nome.endswith(".mkv"):
+        return f"⚠️ Apenas arquivos .mkv são permitidos. Você enviou: {nome}"
+    caminho = arquivo.name
+    try:
+        resultado = subprocess.run(
+            ["rclone", "--config", "rclone_config/rclone.conf", "copy", caminho, f"{remoto}:/"],
+            capture_output=True,
+            text=True
+        )
+        if resultado.returncode == 0:
+            os.remove(caminho)
+            return f"✅ Enviado via rclone e excluído: {nome}"
+        else:
+            return f"❌ Erro rclone: {resultado.stderr}"
+    except Exception as e:
+        return f"❌ Falha ao executar rclone: {str(e)}"
+        # 🔹 Interface Gradio
 remotos_disponiveis = ["dropbox", "gdrive", "onedrive", "mega"]
 
 with gr.Blocks(title="Painel de Torrents") as demo:
