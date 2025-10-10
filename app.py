@@ -3,13 +3,22 @@ import os
 import requests
 import time
 import aria2p
+import subprocess
 
-# 🔐 Tokens globais (serão preenchidos via aba "Tokens")
+# 🔹 Inicia o aria2c em segundo plano
+subprocess.Popen([
+    "aria2c",
+    "--enable-rpc",
+    "--rpc-listen-all=false",
+    "--rpc-allow-origin-all"
+])
+
+# 🔹 Tokens globais
 token_telegram = ""
 chat_id = ""
 token_dropbox = ""
 
-# 🔗 Conecta ao aria2 RPC
+# 🔹 Conexão com aria2
 try:
     aria2 = aria2p.API(
         aria2p.Client(
@@ -18,10 +27,12 @@ try:
             secret=""
         )
     )
-except:
+    print("✅ Conectado ao aria2 com sucesso.")
+except Exception as e:
+    print(f"❌ Erro ao conectar ao aria2: {e}")
     aria2 = None
 
-# 📤 Envia mensagem para Telegram
+# 🔹 Função Telegram
 def enviar_mensagem_telegram(texto):
     if not token_telegram or not chat_id:
         return "❌ Tokens do Telegram não configurados."
@@ -30,7 +41,7 @@ def enviar_mensagem_telegram(texto):
     response = requests.post(url, data=payload)
     return "✅ Mensagem enviada!" if response.ok else f"❌ Erro: {response.text}"
 
-# 📁 Upload para Dropbox
+# 🔹 Função Dropbox
 def upload_dropbox(arquivo):
     if not token_dropbox:
         return "❌ Token do Dropbox não configurado."
@@ -44,7 +55,7 @@ def upload_dropbox(arquivo):
     response = requests.post("https://content.dropboxapi.com/2/files/upload", headers=headers, data=conteudo)
     return "✅ Upload concluído!" if response.ok else f"❌ Erro: {response.text}"
 
-# 📥 Baixar torrent e enviar
+# 🔹 Função Torrent
 def baixar_e_gerenciar_automatico(magnet):
     if not aria2:
         return "⚠️ aria2 não está disponível. Verifique se está rodando."
@@ -68,16 +79,16 @@ def baixar_e_gerenciar_automatico(magnet):
     for nome in os.listdir("downloads"):
         caminho = os.path.join("downloads", nome)
         if os.path.isfile(caminho) and nome.endswith(".mkv"):
-            upload_dropbox(open(caminho, "rb"))
+            with open(caminho, "rb") as f:
+                upload_dropbox(f)
             enviar_mensagem_telegram(f"📦 Arquivo enviado: {nome}")
             resultado.append(f"{nome} enviado")
 
     return "\n".join(resultado) if resultado else "⚠️ Nenhum arquivo .mkv encontrado."
 
-# 🎛️ Interface com abas
+# 🔹 Interface Gradio
 with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("🔐 Tokens"):
-        gr.Markdown("### Salve seus tokens aqui")
         token_telegram_input = gr.Textbox(label="Token do Telegram")
         chat_id_input = gr.Textbox(label="Chat ID do Telegram")
         token_dropbox_input = gr.Textbox(label="Token do Dropbox")
@@ -111,6 +122,6 @@ with gr.Blocks(title="Painel de Torrents") as demo:
         btn_dl = gr.Button("Baixar e Enviar")
         btn_dl.click(baixar_e_gerenciar_automatico, magnet, status_dl)
 
-# 🔌 Configuração para Render
+# 🔹 Lançamento do painel
 port = int(os.environ.get("PORT", 7860))
 demo.launch(server_name="0.0.0.0", server_port=port)
