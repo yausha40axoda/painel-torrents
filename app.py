@@ -49,11 +49,19 @@ def enviar_mensagem_telegram(texto: str) -> str:
         return "⚠️ Mensagem vazia. Digite algo antes de enviar."
     if not token_telegram or not chat_id:
         return "❌ Tokens do Telegram não configurados."
+
     url = f"https://api.telegram.org/bot{token_telegram}/sendMessage"
-    payload = {"chat_id": chat_id, "text": texto}
+    payload = {
+        "chat_id": int(chat_id),
+        "text": texto
+    }
+
     try:
         response = requests.post(url, data=payload)
-        return "✅ Mensagem enviada com sucesso!" if response.ok else f"❌ Erro do Telegram: {response.text}"
+        if response.ok:
+            return "✅ Mensagem enviada com sucesso!"
+        else:
+            return f"❌ Erro do Telegram: {response.status_code} — {response.text}"
     except Exception as e:
         return f"❌ Erro ao enviar: {str(e)}"
 
@@ -118,20 +126,6 @@ def baixar_e_gerenciar_automatico(magnet: str) -> str:
 
     return "\n".join(resultado) if resultado else "⚠️ Nenhum arquivo .mkv encontrado."
 
-# 🔹 Diagnóstico RPC
-def testar_rpc() -> str:
-    try:
-        if not aria2:
-            return "❌ Não foi possível conectar ao aria2."
-        downloads = aria2.get_downloads()
-        return f"✅ Conexão RPC bem-sucedida!\n🔹 Downloads ativos: {len(downloads)}"
-    except Exception as e:
-        return f"❌ Falha na conexão RPC.\nErro: {str(e)}"
-
-# 🔹 Função para exibir status dos tokens
-def status_token(valor):
-    return "✔️ Carregado" if valor else "❌ Ausente"
-
 # 🔹 Gerenciador de arquivos
 def listar_arquivos():
     pasta = "downloads"
@@ -141,45 +135,16 @@ def listar_arquivos():
     if not arquivos:
         return "⚠️ Nenhum arquivo .mkv encontrado."
     return "\n".join(arquivos)
-
-# 🔹 Rclone: salvar config
-def salvar_rclone_conf(conf_file):
-    os.makedirs("rclone_config", exist_ok=True)
-    caminho = os.path.join("rclone_config", "rclone.conf")
-    with open(caminho, "wb") as f:
-        f.write(conf_file.read())
-    return "✅ rclone.conf salvo com sucesso!"
-
-# 🔹 Rclone: enviar arquivo
-def enviar_com_rclone(arquivo, remoto):
-    nome = os.path.basename(arquivo.name)
-    if not nome.endswith(".mkv"):
-        return f"⚠️ Apenas arquivos .mkv são permitidos. Você enviou: {nome}"
-    caminho = arquivo.name
-    try:
-        resultado = subprocess.run(
-            ["rclone", "--config", "rclone_config/rclone.conf", "copy", caminho, f"{remoto}:/"],
-            capture_output=True,
-            text=True
-        )
-        if resultado.returncode == 0:
-            os.remove(caminho)
-            return f"✅ Enviado via rclone e excluído: {nome}"
-        else:
-            return f"❌ Erro rclone: {resultado.stderr}"
-    except Exception as e:
-        return f"❌ Falha ao executar rclone: {str(e)}"
-
-# 🔹 Interface Gradio
+    # 🔹 Interface Gradio
 remotos_disponiveis = ["dropbox", "gdrive", "onedrive", "mega"]
 
 with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("🔐 Tokens"):
         gr.Markdown("🔐 Status dos tokens carregados do ambiente:")
-        gr.Textbox(value=status_token(token_telegram), label="TELEGRAM_TOKEN", interactive=False)
-        gr.Textbox(value=status_token(chat_id), label="CHAT_ID", interactive=False)
-        gr.Textbox(value=status_token(token_dropbox), label="DROPBOX_TOKEN", interactive=False)
-        gr.Textbox(value=status_token(rpc_secret), label="RPC_SECRET", interactive=False)
+        gr.Textbox(value="✔️ Carregado" if token_telegram else "❌ Ausente", label="TELEGRAM_TOKEN", interactive=False)
+        gr.Textbox(value="✔️ Carregado" if chat_id else "❌ Ausente", label="CHAT_ID", interactive=False)
+        gr.Textbox(value="✔️ Carregado" if token_dropbox else "❌ Ausente", label="DROPBOX_TOKEN", interactive=False)
+        gr.Textbox(value="✔️ Carregado" if rpc_secret else "❌ Ausente", label="RPC_SECRET", interactive=False)
 
     with gr.Tab("📬 Telegram"):
         texto = gr.Textbox(label="Mensagem")
@@ -195,48 +160,30 @@ with gr.Blocks(title="Painel de Torrents") as demo:
 
     with gr.Tab("🎬 Torrents"):
         magnet = gr.Textbox(label="Magnet Link")
-        status_dl = gr.Textbox(label="Pro
-# 🔹 Rclone: salvar config
-def salvar_rclone_conf(conf_file):
-    os.makedirs("rclone_config", exist_ok=True)
-    caminho = os.path.join("rclone_config", "rclone.conf")
-    with open(caminho, "wb") as f:
-        f.write(conf_file.read())
-    return "✅ rclone.conf salvo com sucesso!"
+        status_dl = gr.Textbox(label="Progresso do Download", interactive=False)
+        btn_dl = gr.Button(value="Buscar e Enviar")
+        btn_dl.click(fn=baixar_e_gerenciar_automatico, inputs=[magnet], outputs=[status_dl])
 
-# 🔹 Rclone: enviar arquivo
-def enviar_com_rclone(arquivo, remoto):
-    nome = os.path.basename(arquivo.name)
-    if not nome.endswith(".mkv"):
-        return f"⚠️ Apenas arquivos .mkv são permitidos. Você enviou: {nome}"
-    caminho = arquivo.name
-    try:
-        resultado = subprocess.run(
-            ["rclone", "--config", "rclone_config/rclone.conf", "copy", caminho, f"{remoto}:/"],
-            capture_output=True,
-            text=True
-        )
-        if resultado.returncode == 0:
-            os.remove(caminho)
-            return f"✅ Enviado via rclone e excluído: {nome}"
-        else:
-            return f"❌ Erro rclone: {resultado.stderr}"
-    except Exception as e:
-        return f"❌ Falha ao executar rclone: {str(e)}"
+    with gr.Tab("📂 Gerenciador de Arquivos"):
+        gr.Markdown("Arquivos `.mkv` disponíveis na pasta `downloads`:")
+        arquivos_listados = gr.Textbox(label="Lista de Arquivos", interactive=False)
+        btn_listar = gr.Button(value="Atualizar Lista")
+        btn_listar.click(fn=listar_arquivos, inputs=[], outputs=[arquivos_listados])
 
-# 🔹 Interface da aba Rclone
-remotos_disponiveis = ["dropbox", "gdrive", "onedrive", "mega"]
+    with gr.Tab("☁️ Rclone"):
+        gr.Markdown("Configure e envie arquivos `.mkv` via rclone")
 
-with gr.Tab("☁️ Rclone"):
-    gr.Markdown("Configure e envie arquivos `.mkv` via rclone")
+        conf_file = gr.File(label="Upload do rclone.conf")
+        status_conf = gr.Textbox(label="Status do Config", interactive=False)
+        btn_conf = gr.Button("Salvar Configuração")
+        btn_conf.click(fn=salvar_rclone_conf, inputs=[conf_file], outputs=[status_conf])
 
-    conf_file = gr.File(label="Upload do rclone.conf")
-    status_conf = gr.Textbox(label="Status do Config", interactive=False)
-    btn_conf = gr.Button("Salvar Configuração")
-    btn_conf.click(fn=salvar_rclone_conf, inputs=[conf_file], outputs=[status_conf])
+        remoto = gr.Radio(remotos_disponiveis, label="Escolha o serviço de nuvem")
+        arquivo_mkv = gr.File(label="Escolha um arquivo .mkv")
+        status_rclone = gr.Textbox(label="Status do Envio", interactive=False)
+        btn_rclone = gr.Button("Enviar via Rclone")
+        btn_rclone.click(fn=enviar_com_rclone, inputs=[arquivo_mkv, remoto], outputs=[status_rclone])
 
-    remoto = gr.Radio(remotos_disponiveis, label="Escolha o serviço de nuvem")
-    arquivo_mkv = gr.File(label="Escolha um arquivo .mkv")
-    status_rclone = gr.Textbox(label="Status do Envio", interactive=False)
-    btn_rclone = gr.Button("Enviar via Rclone")
-    btn_rclone.click(fn=enviar_com_rclone, inputs=[arquivo_mkv, remoto], outputs=[status_rclone])
+# 🔹 Lançamento do painel com porta do Render
+port = int(os.environ.get("PORT", 7860))
+demo.launch(server_name="0.0.0.0", server_port=port, share=True)
