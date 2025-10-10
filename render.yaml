@@ -8,7 +8,7 @@ services:
       - key: TELEGRAM_TOKEN
         value: seu_token_telegram
       - key: CHAT_ID
-        value: seu_chat_id
+        value: 7092570800
       - key: DROPBOX_TOKEN
         value: seu_token_dropbox
       - key: RPC_SECRET
