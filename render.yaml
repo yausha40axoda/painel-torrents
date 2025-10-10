@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: painel-torrents
+    name: painel-dropcolab
     env: docker
     dockerfilePath: Dockerfile
     autoDeploy: true
