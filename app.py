@@ -97,19 +97,19 @@ with gr.Blocks(title="Painel de Torrents") as demo:
         texto = gr.Textbox(label="Mensagem")
         status_msg = gr.Textbox(label="Status")
         btn_msg = gr.Button("Enviar")
-        btn_msg.click(enviar_mensagem_telegram, texto, status_msg)
+        btn_msg.click(enviar_mensagem_telegram, inputs=texto, outputs=status_msg)
 
     with gr.Tab("📁 Dropbox"):
         arquivo = gr.File(label="Escolha um arquivo")
         status_up = gr.Textbox(label="Status")
         btn_up = gr.Button("Enviar para Dropbox")
-        btn_up.click(upload_dropbox, arquivo, status_up)
+        btn_up.click(upload_dropbox, inputs=arquivo, outputs=status_up)
 
     with gr.Tab("🎬 Torrents"):
         magnet = gr.Textbox(label="Magnet Link")
         status_dl = gr.Textbox(label="Status do Download")
         btn_dl = gr.Button("Baixar e Enviar")
-        btn_dl.click(baixar_e_gerenciar_automatico, magnet, status_dl)
+        btn_dl.click(baixar_e_gerenciar_automatico, inputs=magnet, outputs=status_dl)
 
 # 🔹 Lançamento do painel com share=True
 port = int(os.environ.get("PORT", 7860))
