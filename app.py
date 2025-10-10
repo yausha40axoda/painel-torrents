@@ -1,19 +1,23 @@
-!pip install gradio aria2p requests
-
 import gradio as gr
 import os
 import requests
 import time
 import aria2p
 
-# 🔐 Variáveis globais (simuladas para Colab)
+# 🔐 Tokens globais (serão preenchidos via aba "Tokens")
 token_telegram = ""
 chat_id = ""
 token_dropbox = ""
 
-# 🔗 Conecta ao aria2 RPC (simulado para Colab — não roda aria2c aqui)
+# 🔗 Conecta ao aria2 RPC
 try:
-    aria2 = aria2p.API(aria2p.Client(host="http://localhost", port=6800, secret=""))
+    aria2 = aria2p.API(
+        aria2p.Client(
+            host="http://localhost",
+            port=6800,
+            secret=""
+        )
+    )
 except:
     aria2 = None
 
@@ -43,7 +47,7 @@ def upload_dropbox(arquivo):
 # 📥 Baixar torrent e enviar
 def baixar_e_gerenciar_automatico(magnet):
     if not aria2:
-        return "⚠️ aria2 não está disponível no Colab. Teste local ou no Render."
+        return "⚠️ aria2 não está disponível. Verifique se está rodando."
     os.makedirs("downloads", exist_ok=True)
     resultado = []
 
@@ -71,7 +75,7 @@ def baixar_e_gerenciar_automatico(magnet):
     return "\n".join(resultado) if resultado else "⚠️ Nenhum arquivo .mkv encontrado."
 
 # 🎛️ Interface com abas
-with gr.Blocks(title="Painel Completo") as demo:
+with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("🔐 Tokens"):
         gr.Markdown("### Salve seus tokens aqui")
         token_telegram_input = gr.Textbox(label="Token do Telegram")
@@ -107,4 +111,6 @@ with gr.Blocks(title="Painel Completo") as demo:
         btn_dl = gr.Button("Baixar e Enviar")
         btn_dl.click(baixar_e_gerenciar_automatico, magnet, status_dl)
 
-demo.launch(share=True)
+# 🔌 Configuração para Render
+port = int(os.environ.get("PORT", 7860))
+demo.launch(server_name="0.0.0.0", server_port=port)
