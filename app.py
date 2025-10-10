@@ -1,52 +1,49 @@
+!pip install gradio aria2p requests
+
 import gradio as gr
 import os
 import requests
 import time
 import aria2p
 
-# 🔐 Tokens via variáveis de ambiente
-token_dropbox = os.getenv("DROPBOX_TOKEN")
-token_telegram = os.getenv("TELEGRAM_TOKEN")
-chat_id = os.getenv("CHAT_ID")
+# 🔐 Variáveis globais (simuladas para Colab)
+token_telegram = ""
+chat_id = ""
+token_dropbox = ""
 
-# 🔗 Conecta ao aria2 RPC
-aria2 = aria2p.API(
-    aria2p.Client(
-        host="http://localhost",
-        port=6800,
-        secret=""  # Se usar secret, defina aqui e no start command
-    )
-)
+# 🔗 Conecta ao aria2 RPC (simulado para Colab — não roda aria2c aqui)
+try:
+    aria2 = aria2p.API(aria2p.Client(host="http://localhost", port=6800, secret=""))
+except:
+    aria2 = None
 
 # 📤 Envia mensagem para Telegram
 def enviar_mensagem_telegram(texto):
+    if not token_telegram or not chat_id:
+        return "❌ Tokens do Telegram não configurados."
     url = f"https://api.telegram.org/bot{token_telegram}/sendMessage"
     payload = {"chat_id": chat_id, "text": texto}
-    requests.post(url, data=payload)
-
-# 📤 Envia arquivo para Telegram
-def enviar_arquivo_telegram(caminho):
-    nome = os.path.basename(caminho)
-    url = f"https://api.telegram.org/bot{token_telegram}/sendDocument"
-    with open(caminho, "rb") as f:
-        files = {"document": (nome, f)}
-        data = {"chat_id": chat_id}
-        requests.post(url, data=data, files=files)
+    response = requests.post(url, data=payload)
+    return "✅ Mensagem enviada!" if response.ok else f"❌ Erro: {response.text}"
 
 # 📁 Upload para Dropbox
-def upload_dropbox(caminho):
-    nome = os.path.basename(caminho)
-    with open(caminho, "rb") as f:
-        conteudo = f.read()
+def upload_dropbox(arquivo):
+    if not token_dropbox:
+        return "❌ Token do Dropbox não configurado."
+    nome = os.path.basename(arquivo.name)
+    conteudo = arquivo.read()
     headers = {
         "Authorization": f"Bearer {token_dropbox}",
         "Content-Type": "application/octet-stream",
         "Dropbox-API-Arg": f'{{"path": "/{nome}", "mode": "add", "autorename": true}}'
     }
-    requests.post("https://content.dropboxapi.com/2/files/upload", headers=headers, data=conteudo)
+    response = requests.post("https://content.dropboxapi.com/2/files/upload", headers=headers, data=conteudo)
+    return "✅ Upload concluído!" if response.ok else f"❌ Erro: {response.text}"
 
-# 📥 Função principal: baixar torrent e enviar
+# 📥 Baixar torrent e enviar
 def baixar_e_gerenciar_automatico(magnet):
+    if not aria2:
+        return "⚠️ aria2 não está disponível no Colab. Teste local ou no Render."
     os.makedirs("downloads", exist_ok=True)
     resultado = []
 
@@ -54,9 +51,6 @@ def baixar_e_gerenciar_automatico(magnet):
         downloads = aria2.add(uri=magnet, options={"dir": "downloads"})
     except Exception as e:
         return f"❌ Erro ao iniciar download: {str(e)}"
-
-    if not downloads:
-        return "❌ Nenhum download iniciado."
 
     download = downloads[0]
     enviar_mensagem_telegram(f"🎬 Iniciando download: {download.name}")
@@ -70,22 +64,47 @@ def baixar_e_gerenciar_automatico(magnet):
     for nome in os.listdir("downloads"):
         caminho = os.path.join("downloads", nome)
         if os.path.isfile(caminho) and nome.endswith(".mkv"):
-            upload_dropbox(caminho)
-            enviar_arquivo_telegram(caminho)
-            tamanho = os.path.getsize(caminho) / (1024 * 1024)
-            resultado.append(f"📦 {nome} enviado ({tamanho:.2f} MB)")
+            upload_dropbox(open(caminho, "rb"))
+            enviar_mensagem_telegram(f"📦 Arquivo enviado: {nome}")
+            resultado.append(f"{nome} enviado")
 
     return "\n".join(resultado) if resultado else "⚠️ Nenhum arquivo .mkv encontrado."
 
-# 🎛️ Interface Gradio
-demo = gr.Interface(
-    fn=baixar_e_gerenciar_automatico,
-    inputs=gr.Textbox(label="🔗 Magnet Link"),
-    outputs=gr.Textbox(label="📦 Status do Download"),
-    title="Painel de Torrents",
-    description="Insira o link magnet para baixar, enviar para Dropbox e Telegram automaticamente."
-)
+# 🎛️ Interface com abas
+with gr.Blocks(title="Painel Completo") as demo:
+    with gr.Tab("🔐 Tokens"):
+        gr.Markdown("### Salve seus tokens aqui")
+        token_telegram_input = gr.Textbox(label="Token do Telegram")
+        chat_id_input = gr.Textbox(label="Chat ID do Telegram")
+        token_dropbox_input = gr.Textbox(label="Token do Dropbox")
+        status_tokens = gr.Textbox(label="Status")
+        btn_salvar = gr.Button("Salvar Tokens")
 
-# 🔌 Configuração para Render
-port = int(os.environ.get("PORT", 7860))
-demo.launch(server_name="0.0.0.0", server_port=port)
+        def salvar_tokens(tg, cid, dbx):
+            global token_telegram, chat_id, token_dropbox
+            token_telegram = tg
+            chat_id = cid
+            token_dropbox = dbx
+            return "✅ Tokens salvos com sucesso!"
+
+        btn_salvar.click(salvar_tokens, [token_telegram_input, chat_id_input, token_dropbox_input], status_tokens)
+
+    with gr.Tab("📬 Telegram"):
+        texto = gr.Textbox(label="Mensagem")
+        status_msg = gr.Textbox(label="Status")
+        btn_msg = gr.Button("Enviar")
+        btn_msg.click(enviar_mensagem_telegram, texto, status_msg)
+
+    with gr.Tab("📁 Dropbox"):
+        arquivo = gr.File(label="Escolha um arquivo")
+        status_up = gr.Textbox(label="Status")
+        btn_up = gr.Button("Enviar para Dropbox")
+        btn_up.click(upload_dropbox, arquivo, status_up)
+
+    with gr.Tab("🎬 Torrents"):
+        magnet = gr.Textbox(label="Magnet Link")
+        status_dl = gr.Textbox(label="Status do Download")
+        btn_dl = gr.Button("Baixar e Enviar")
+        btn_dl.click(baixar_e_gerenciar_automatico, magnet, status_dl)
+
+demo.launch(share=True)
