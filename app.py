@@ -53,10 +53,7 @@ def enviar_mensagem_telegram(texto: str) -> str:
     payload = {"chat_id": chat_id, "text": texto}
     try:
         response = requests.post(url, data=payload)
-        if response.ok:
-            return "✅ Mensagem enviada com sucesso!"
-        else:
-            return f"❌ Erro do Telegram: {response.text}"
+        return "✅ Mensagem enviada com sucesso!" if response.ok else f"❌ Erro do Telegram: {response.text}"
     except Exception as e:
         return f"❌ Erro ao enviar: {str(e)}"
 
@@ -105,10 +102,28 @@ def baixar_e_gerenciar_automatico(magnet: str) -> str:
 
     return "\n".join(resultado) if resultado else "⚠️ Nenhum arquivo .mkv encontrado."
 
+# 🔹 Diagnóstico RPC
+def testar_rpc() -> str:
+    try:
+        if not aria2:
+            return "❌ Não foi possível conectar ao aria2."
+        downloads = aria2.get_downloads()
+        return f"✅ Conexão RPC bem-sucedida!\n🔹 Downloads ativos: {len(downloads)}"
+    except Exception as e:
+        return f"❌ Falha na conexão RPC.\nErro: {str(e)}"
+
+# 🔹 Função para exibir status dos tokens
+def status_token(valor):
+    return "✔️ Carregado" if valor else "❌ Ausente"
+
 # 🔹 Interface Gradio
 with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("🔐 Tokens"):
-        gr.Markdown("Tokens carregados automaticamente do ambiente.")
+        gr.Markdown("🔐 Status dos tokens carregados do ambiente:")
+        gr.Textbox(value=status_token(token_telegram), label="TELEGRAM_TOKEN", interactive=False)
+        gr.Textbox(value=status_token(chat_id), label="CHAT_ID", interactive=False)
+        gr.Textbox(value=status_token(token_dropbox), label="DROPBOX_TOKEN", interactive=False)
+        gr.Textbox(value=status_token(rpc_secret), label="RPC_SECRET", interactive=False)
 
     with gr.Tab("📬 Telegram"):
         texto = gr.Textbox(label="Mensagem")
@@ -128,6 +143,11 @@ with gr.Blocks(title="Painel de Torrents") as demo:
         btn_dl = gr.Button(value="Buscar e Enviar")
         btn_dl.click(fn=baixar_e_gerenciar_automatico, inputs=[magnet], outputs=[status_dl])
 
-# 🔹 Lançamento do painel com share=True
+    with gr.Tab("🩺 Diagnóstico RPC"):
+        status_rpc = gr.Textbox(label="Status da Conexão RPC")
+        btn_rpc = gr.Button(value="Testar Conexão RPC")
+        btn_rpc.click(fn=testar_rpc, inputs=[], outputs=[status_rpc])
+
+# 🔹 Lançamento do painel com porta do Render
 port = int(os.environ.get("PORT", 7860))
 demo.launch(server_name="0.0.0.0", server_port=port, share=True)
