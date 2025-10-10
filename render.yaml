@@ -6,7 +6,7 @@ services:
     startCommand: python app.py
     envVars:
       - key: TELEGRAM_TOKEN
-        value: seu_token_telegram
+        value: 8454340898:AAFhVCKBIH4gy8-OmIBKgF6bPbZOdZW9Xus
       - key: CHAT_ID
         value: 7092570800
       - key: DROPBOX_TOKEN
