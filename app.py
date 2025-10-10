@@ -35,7 +35,7 @@ except Exception as e:
     aria2 = None
 
 # 🔹 Função Telegram
-def enviar_mensagem_telegram(texto):
+def enviar_mensagem_telegram(texto: str) -> str:
     if not token_telegram or not chat_id:
         return "❌ Tokens do Telegram não configurados."
     url = f"https://api.telegram.org/bot{token_telegram}/sendMessage"
@@ -44,7 +44,7 @@ def enviar_mensagem_telegram(texto):
     return "✅ Mensagem enviada!" if response.ok else f"❌ Erro: {response.text}"
 
 # 🔹 Função Dropbox
-def upload_dropbox(arquivo):
+def upload_dropbox(arquivo) -> str:
     if not token_dropbox:
         return "❌ Token do Dropbox não configurado."
     nome = os.path.basename(arquivo.name)
@@ -58,7 +58,7 @@ def upload_dropbox(arquivo):
     return "✅ Upload concluído!" if response.ok else f"❌ Erro: {response.text}"
 
 # 🔹 Função Torrent
-def baixar_e_gerenciar_automatico(magnet):
+def baixar_e_gerenciar_automatico(magnet: str) -> str:
     if not aria2:
         return "⚠️ aria2 não está disponível. Verifique se está rodando."
     os.makedirs("downloads", exist_ok=True)
@@ -96,19 +96,19 @@ with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("📬 Telegram"):
         texto = gr.Textbox(label="Mensagem")
         status_msg = gr.Textbox(label="Status")
-        btn_msg = gr.Button("Enviar")
+        btn_msg = gr.Button(value="Enviar")
         btn_msg.click(fn=enviar_mensagem_telegram, inputs=[texto], outputs=[status_msg])
 
     with gr.Tab("📁 Dropbox"):
         arquivo = gr.File(label="Escolha um arquivo")
         status_up = gr.Textbox(label="Status")
-        btn_up = gr.Button("Enviar para Dropbox")
+        btn_up = gr.Button(value="Enviar para Dropbox")
         btn_up.click(fn=upload_dropbox, inputs=[arquivo], outputs=[status_up])
 
     with gr.Tab("🎬 Torrents"):
         magnet = gr.Textbox(label="Magnet Link")
         status_dl = gr.Textbox(label="Status do Download")
-        btn_dl = gr.Button("Baixar e Enviar")
+        btn_dl = gr.Button(value="Baixar e Enviar")
         btn_dl.click(fn=baixar_e_gerenciar_automatico, inputs=[magnet], outputs=[status_dl])
 
 # 🔹 Lançamento do painel com share=True
