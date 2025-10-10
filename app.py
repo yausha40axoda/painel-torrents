@@ -108,7 +108,7 @@ with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("🎬 Torrents"):
         magnet = gr.Textbox(label="Magnet Link")
         status_dl = gr.Textbox(label="Status do Download")
-        btn_dl = gr.Button(value="Baixar e Enviar")
+        btn_dl = gr.Button(value="Buscar e Enviar")
         btn_dl.click(fn=baixar_e_gerenciar_automatico, inputs=[magnet], outputs=[status_dl])
 
 # 🔹 Lançamento do painel com share=True
