@@ -5,18 +5,20 @@ import time
 import aria2p
 import subprocess
 
-# 🔹 Inicia o aria2c em segundo plano
+# 🔹 Inicia o aria2c com segredo
+rpc_secret = os.getenv("RPC_SECRET", "")
 subprocess.Popen([
     "aria2c",
     "--enable-rpc",
     "--rpc-listen-all=false",
-    "--rpc-allow-origin-all"
+    "--rpc-allow-origin-all",
+    f"--rpc-secret={rpc_secret}"
 ])
 
 # 🔹 Tokens globais
-token_telegram = ""
-chat_id = ""
-token_dropbox = ""
+token_telegram = os.getenv("TELEGRAM_TOKEN", "")
+chat_id = os.getenv("CHAT_ID", "")
+token_dropbox = os.getenv("DROPBOX_TOKEN", "")
 
 # 🔹 Conexão com aria2
 try:
@@ -24,7 +26,7 @@ try:
         aria2p.Client(
             host="http://localhost",
             port=6800,
-            secret=""
+            secret=rpc_secret
         )
     )
     print("✅ Conectado ao aria2 com sucesso.")
@@ -89,20 +91,7 @@ def baixar_e_gerenciar_automatico(magnet):
 # 🔹 Interface Gradio
 with gr.Blocks(title="Painel de Torrents") as demo:
     with gr.Tab("🔐 Tokens"):
-        token_telegram_input = gr.Textbox(label="Token do Telegram")
-        chat_id_input = gr.Textbox(label="Chat ID do Telegram")
-        token_dropbox_input = gr.Textbox(label="Token do Dropbox")
-        status_tokens = gr.Textbox(label="Status")
-        btn_salvar = gr.Button("Salvar Tokens")
-
-        def salvar_tokens(tg, cid, dbx):
-            global token_telegram, chat_id, token_dropbox
-            token_telegram = tg
-            chat_id = cid
-            token_dropbox = dbx
-            return "✅ Tokens salvos com sucesso!"
-
-        btn_salvar.click(salvar_tokens, [token_telegram_input, chat_id_input, token_dropbox_input], status_tokens)
+        gr.Markdown("Tokens carregados automaticamente do ambiente.")
 
     with gr.Tab("📬 Telegram"):
         texto = gr.Textbox(label="Mensagem")
