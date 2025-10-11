@@ -5,6 +5,8 @@ import requests
 # 🔹 Carrega variáveis de ambiente
 token_telegram = os.getenv("TELEGRAM_TOKEN", "")
 chat_id = os.getenv("CHAT_ID", "")
+
+# 🔹 Função de envio com log detalhado
 def enviar_mensagem_telegram(texto: str) -> str:
     try:
         log = []
@@ -41,11 +43,15 @@ def enviar_mensagem_telegram(texto: str) -> str:
 
     except Exception as e:
         return f"❌ Erro inesperado: {str(e)}"
-        with gr.Blocks(title="Painel DropColab") as demo:
+
+# 🔹 Interface Gradio
+with gr.Blocks(title="Painel DropColab") as demo:
     with gr.Tab("📬 Telegram"):
         texto = gr.Textbox(label="Mensagem")
         status_msg = gr.Textbox(label="Log de Status", lines=10, interactive=False)
         btn_msg = gr.Button(value="Enviar")
         btn_msg.click(fn=enviar_mensagem_telegram, inputs=[texto], outputs=[status_msg])
-        port = int(os.environ.get("PORT", 7860))
-demo.launch(server_name="0.0.0.0", server_port=port, share=True)
+
+# 🔹 Lançamento do painel
+port = int(os.environ.get("PORT", 7860))
+demo.launch(server_name="0.0.0.0", server_port=port)
