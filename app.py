@@ -1,27 +1,12 @@
 import gradio as gr
 import os
 import requests
-import subprocess
 
 # 🔹 Carrega variáveis de ambiente
 token_telegram = os.getenv("TELEGRAM_TOKEN", "")
 chat_id = os.getenv("CHAT_ID", "")
-rpc_secret = os.getenv("RPC_SECRET", "")
 
-# 🔹 Verifica RPC_SECRET antes de iniciar aria2c
-if not rpc_secret:
-    raise ValueError("❌ RPC_SECRET está vazio. Defina no ambiente.")
-
-# 🔹 Inicia aria2c com RPC habilitado
-subprocess.Popen([
-    "aria2c",
-    "--enable-rpc",
-    "--rpc-listen-all=false",
-    "--rpc-allow-origin-all",
-    f"--rpc-secret={rpc_secret}"
-])
-
-# 🔹 Função de envio para Telegram com log
+# 🔹 Função de envio com log detalhado
 def enviar_mensagem_telegram(texto: str) -> str:
     try:
         log = []
@@ -69,4 +54,4 @@ with gr.Blocks(title="Painel DropColab") as demo:
 
 # 🔹 Lançamento do painel
 port = int(os.environ.get("PORT", 7860))
-demo.launch(server_name="0.0.0.0", server_port=port, share=True)
+demo.launch(server_name="0.0.0.0", server_port=port)
