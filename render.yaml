@@ -9,3 +9,7 @@ services:
         value: 8454340898:AAFhVCKBIH4gy8-OmIBKgF6bPbZOdZW9Xus
       - key: CHAT_ID
         value: 7092570800
+      - key: RPC_SECRET
+        value: teste123
+
+ 
