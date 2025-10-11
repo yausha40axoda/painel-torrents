@@ -2,11 +2,11 @@ import gradio as gr
 import os
 import requests
 
-# 🔹 Carrega variáveis de ambiente
+# 🔹 Carrega variáveis de ambiente com limpeza
 token_telegram = os.getenv("TELEGRAM_TOKEN", "").strip()
 chat_id = os.getenv("CHAT_ID", "").strip()
 
-# 🔹 Função de envio com log detalhado
+# 🔹 Função segura com log visível
 def enviar_mensagem_telegram(texto: str) -> str:
     try:
         log = []
@@ -23,13 +23,16 @@ def enviar_mensagem_telegram(texto: str) -> str:
             log.append("❌ TELEGRAM_TOKEN ou CHAT_ID não configurado.")
             return "\n".join(log)
 
-        url = f"https://api.telegram.org/bot{token_telegram}/sendMessage"
-        payload = {
-            "chat_id": int(chat_id),
-            "text": texto
-        }
+        try:
+            chat_id_int = int(chat_id)
+        except ValueError:
+            log.append(f"❌ CHAT_ID inválido: '{chat_id}'")
+            return "\n".join(log)
 
+        url = f"https://api.telegram.org/bot{token_telegram}/sendMessage"
+        payload = {"chat_id": chat_id_int, "text": texto}
         response = requests.post(url, data=payload)
+
         log.append(f"🌐 URL chamada: {url}")
         log.append(f"📦 Payload: {payload}")
         log.append(f"📡 Status HTTP: {response.status_code}")
@@ -48,7 +51,7 @@ def enviar_mensagem_telegram(texto: str) -> str:
 with gr.Blocks(title="Painel Telegram") as demo:
     with gr.Tab("📬 Telegram"):
         texto = gr.Textbox(label="Mensagem")
-        status = gr.Textbox(label="Status", lines=8, interactive=False)
+        status = gr.Textbox(label="Status", lines=10, interactive=False)
         enviar = gr.Button("Enviar")
         enviar.click(fn=enviar_mensagem_telegram, inputs=[texto], outputs=[status])
 
